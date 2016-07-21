@@ -43,6 +43,7 @@
     BOOL useLocalWebServer = NO;
     BOOL requirementsOK = NO;
     NSString* indexPage = @"index.html";
+    NSString* queryString = @"";
     NSString* appBasePath = @"www";
     NSUInteger port = 80;
 
@@ -52,6 +53,8 @@
     if (startPageUrl != nil) {
         if ([[startPageUrl scheme] isEqualToString:@"http"] && [[startPageUrl host] isEqualToString:@"localhost"]) {
             port = [[startPageUrl port] unsignedIntegerValue];
+            indexPage = [startPageUrl path];
+            queryString = [startPageUrl query];
             useLocalWebServer = YES;
         }
     }
@@ -72,7 +75,7 @@
         }
     }
 #endif
-    
+
     if (port == 0) {
         // CB-9096 - actually test for an available port, and set it explicitly
         port = [self _availablePort];
@@ -89,12 +92,12 @@
         // add after server is started to get the true port
         [self addFileSystemHandlers:authToken];
         [self addErrorSystemHandler:authToken];
-        
+
         // handlers must be added before server starts
         [self.server startWithPort:port bonjourName:nil];
 
         // Update the startPage (supported in cordova-ios 3.7.0, see https://issues.apache.org/jira/browse/CB-7857)
-		vc.startPage = [NSString stringWithFormat:@"http://localhost:%lu/%@/%@?%@", (unsigned long)self.server.port, appBasePath, indexPage, authToken];
+		vc.startPage = [NSString stringWithFormat:@"http://localhost:%lu/%@/%@?%@&%@", (unsigned long)self.server.port, appBasePath, indexPage, authToken, queryString];
 
     } else {
         if (requirementsOK) {
@@ -102,7 +105,7 @@
             NSLog(@"%@", error);
 
             [self addErrorSystemHandler:authToken];
-            
+
             // handlers must be added before server starts
             [self.server startWithPort:port bonjourName:nil];
 
@@ -132,7 +135,7 @@
             return ntohs(sockaddr->sin_port);
         }
     }
-    
+
     return 0;
 }
 
@@ -170,7 +173,7 @@
     if ([self.commandDelegate respondsToSelector:sel]) {
         NSURL* (^urlTransformer)(NSURL*) = ^NSURL* (NSURL* urlToTransform) {
             NSURL* localServerURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://localhost:%lu", (unsigned long)weakSelf.server.port]];
-            
+
             NSURL* transformedUrl = urlToTransform;
 
             NSString* localhostUrlString = [NSString stringWithFormat:@"http://localhost:%lu", (unsigned long)[localServerURL.port unsignedIntegerValue]];
